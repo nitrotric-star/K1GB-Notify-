@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1c1b1a">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvvtQAAAEdklEQVR4nO3dQW7bMBRFUaboKtpuIcgs+x9nFnRDHbAQDFuWZD2K/O/znmmLmPK/ppQ4sd7+/P5VgLN+jF4AvBEQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFBQkCQEBAkBAQJAUFCQJAQECQEBAkBQUJAkBAQJAQECQFB8nP0AmL5+/21+3/ePz47rMTF2+R3bT5SzLbJe5o0IL2bR3OWNFdAV3TzaKqSZgmoTzq3Jskof0D907mVPqPMAY1N51bijNIGdK6eI5O+7is7yhnQSzNWRtvtgcLKFtDxibYd56jHHS5VQBF+jhxhDT3lCWh3cj3HFmoxl0ryZmq0ge0+XJzvEEUZdqDtYYx9rUdeWxP2O1DwCW0vIME+5B1Q8Hqq3A0Zn8I2nvog6dyxW/AR3jvQqrDDCLswhWtAz17NwYf0bHm+JzLLgHyf7g2mB+UXkPuVxMYiHRvyC+gZi3oqo6XuMgvI9NLnUZqLIbOAEI1TQGm2nyrHJuQU0CrTeirrxVc2AXm9LkVGB2sT0KoEr2D3Q/AOCMN5BGS0pbficsgeAa1y3/wX1gfCx7use9wArMd8HYOAem7mG4+1/FO3kv5+f8Wv1vUUdsUze7BUPhrmlmtAzb2UhcsVbgcEVMqpIGioIqDzKdBQiR/Q6pAaXjGIETRsaPWg4jcaPSAER0CQTB1QkxNE/LPMpaYOCDoCgoSAICEgSAgIkqkDavIDSd/3QZuYOiDoCAiS6AFd/Q6ReAK6+l25+OfH6AF1cHpI8afbAQGVcioF6qkI6L+XgqCehWtAA38xeeCvYwdk8FcZ7x+f3Z7fJY4If9Zjsc8ZBDSExfAicD2FFedt/471gXgENOF+4HLIHgEhLO+ArDf/yv0QbAJy2dKbMDpYm4CesX4FWy++cgoox8eaLnJ86KxTQAjILKA0m1CO7afYBbTBqCGjpe7yC8j9bjfudxu64xdQ8Xyid5kelGVAxfZiKM2lz8I1oA1hGwq7MIXxXZuLyW2/i886T/DegSxuyZ64nuIeUAnfUO56ivspbLEbSv9RBVzSFex3oGp3GJ23oknqKWl2oOpIJVdPLsIaekoVUHllp2k7xVGPO1y2gKqXTljKRLs9UFg5AypnL3qOzPi6r+wobUAlwPfwi6z1lNwBVWMzSpxOlT+gqn9G6dOpZgmo6pPRJOlUcwW04K6DrUwa0EIvac5uFrMHdGe2nyPrCAiSJG+mYhQCgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSAgIEgKChIAgISBICAgSAoKEgCAhIEgICBICgoSAICEgSP4Bo9hR7AJzwOUAAAAASUVORK5CYII=">
+<title>K1GB Notify</title>
+<style>
+  :root{
+    --ink:#1c1b1a;
+    --paper:#efece4;
+    --card:#faf8f3;
+    --line:#d9d4c7;
+    --brass:#8a6d3b;
+    --brass-deep:#6b5228;
+    --red:#a13d2b;
+    --shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: 'Georgia', 'Iowan Old Style', serif;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(138,109,59,0.06), transparent 40%),
+      var(--paper);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  header{
+    width:100%;
+    max-width:480px;
+    padding:32px 20px 12px;
+    text-align:left;
+  }
+  .eyebrow{
+    font-family: 'Courier New', monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--brass-deep);
+    margin:0 0 4px;
+  }
+  h1{
+    font-size:32px;
+    margin:0;
+    font-weight:400;
+    letter-spacing:-0.01em;
+  }
+  main{
+    width:100%;
+    max-width:480px;
+    flex:1;
+    padding:8px 20px 120px;
+  }
+  .empty{
+    margin-top:60px;
+    text-align:center;
+    color:#8a8577;
+    font-style:italic;
+    font-size:15px;
+    line-height:1.6;
+  }
+  .empty .glyph{
+    font-size:34px;
+    display:block;
+    margin-bottom:10px;
+    font-style:normal;
+  }
+  ul{
+    list-style:none;
+    margin:20px 0 0;
+    padding:0;
+  }
+  li{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:16px 16px 16px 20px;
+    margin-bottom:10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    position:relative;
+    box-shadow:var(--shadow);
+    animation: settle 0.35s ease;
+  }
+  li::before{
+    content:"";
+    position:absolute;
+    left:0; top:0; bottom:0;
+    width:3px;
+    background:var(--brass);
+  }
+  li.fired::before{ background:var(--red); }
+  @keyframes settle{
+    from{ opacity:0; transform: translateY(-6px); }
+    to{ opacity:1; transform: translateY(0); }
+  }
+  .info .name{
+    font-size:17px;
+    display:block;
+    margin-bottom:3px;
+  }
+  .info .time{
+    font-family:'Courier New', monospace;
+    font-size:13px;
+    letter-spacing:0.04em;
+    color:#7a7565;
+  }
+  .del{
+    background:none;
+    border:none;
+    color:#b3ab99;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+    padding:6px;
+    font-family:'Courier New', monospace;
+  }
+  .del:hover{ color:var(--red); }
+  .fab{
+    position:fixed;
+    bottom:28px;
+    left:50%;
+    transform:translateX(-50%);
+    width:58px;
+    height:58px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    font-size:26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,0.22);
+    transition:transform 0.15s ease;
+  }
+  .fab:active{ transform:translateX(-50%) scale(0.92); }
+  .permission{
+    max-width:480px;
+    width:calc(100% - 40px);
+    margin:0 20px 8px;
+    background:#f4ede0;
+    border:1px solid var(--line);
+    padding:10px 14px;
+    font-size:13px;
+    color:var(--brass-deep);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .permission button{
+    font-family:'Courier New', monospace;
+    font-size:12px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .sheet-backdrop{
+    position:fixed; inset:0;
+    background:rgba(28,27,26,0.35);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:10;
+  }
+  .sheet-backdrop.open{ display:flex; }
+  .sheet{
+    background:var(--card);
+    width:100%;
+    max-width:480px;
+    border-top:1px solid var(--line);
+    border-radius:14px 14px 0 0;
+    padding:22px 22px 28px;
+    animation: rise 0.25s ease;
+  }
+  @keyframes rise{
+    from{ transform:translateY(20px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
+  .sheet h2{
+    margin:0 0 18px;
+    font-weight:400;
+    font-size:20px;
+  }
+  label{
+    display:block;
+    font-family:'Courier New', monospace;
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:#8a8577;
+    margin-bottom:6px;
+  }
+  input[type=text], input[type=time]{
+    width:100%;
+    font-family:'Georgia', serif;
+    font-size:17px;
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:2px;
+    background:#fff;
+    color:var(--ink);
+    margin-bottom:18px;
+  }
+  input:focus{ outline:2px solid var(--brass); outline-offset:1px; }
+  .sheet-actions{
+    display:flex;
+    gap:10px;
+  }
+  .sheet-actions button{
+    flex:1;
+    padding:13px;
+    font-family:'Georgia', serif;
+    font-size:15px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .btn-cancel{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+  .btn-save{
+    background:var(--ink);
+    border:1px solid var(--ink);
+    color:var(--paper);
+  }
+  @media (prefers-reduced-motion: reduce){
+    li, .sheet{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="eyebrow">Reminders · today onward</p>
+  <h1>K1GB Notify</h1>
+  <p style="font-size:12.5px;color:#9a9483;margin:8px 0 0;line-height:1.5;">
+    Keep this tab open (or bookmarked and reopened) for pings to fire — don't fully close the browser.
+  </p>
+</header>
+
+<div id="permissionBanner" class="permission" style="display:none;">
+  <span>Notifications are blocked in this browser.</span>
+  <button id="askPermission">Allow</button>
+</div>
+
+<main>
+  <ul id="list"></ul>
+  <div id="emptyState" class="empty">
+    <span class="glyph">◐</span>
+    Nothing set yet.<br>Tap + to add your first ping.
+  </div>
+</main>
+
+<button class="fab" id="openSheet" aria-label="Add reminder">+</button>
+
+<div class="sheet-backdrop" id="backdrop">
+  <div class="sheet">
+    <h2>New ping</h2>
+    <label for="nameInput">Name</label>
+    <input type="text" id="nameInput" placeholder="e.g. Take medicine" maxlength="60">
+    <label for="timeInput">Time</label>
+    <input type="time" id="timeInput">
+    <div class="sheet-actions">
+      <button class="btn-cancel" id="cancelBtn">Cancel</button>
+      <button class="btn-save" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'pings_reminders_v1';
+  const list = document.getElementById('list');
+  const emptyState = document.getElementById('emptyState');
+  const backdrop = document.getElementById('backdrop');
+  const openSheet = document.getElementById('openSheet');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const saveBtn = document.getElementById('saveBtn');
+  const nameInput = document.getElementById('nameInput');
+  const timeInput = document.getElementById('timeInput');
+  const permissionBanner = document.getElementById('permissionBanner');
+  const askPermission = document.getElementById('askPermission');
+
+  function loadReminders(){
+    try{
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    }catch(e){ return []; }
+  }
+  function saveReminders(reminders){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reminders));
+  }
+
+  let reminders = loadReminders();
+
+  function formatTime(hhmm){
+    const [h,m] = hhmm.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const h12 = ((h + 11) % 12) + 1;
+    return `${h12}:${String(m).padStart(2,'0')} ${period}`;
+  }
+
+  function render(){
+    list.innerHTML = '';
+    if(reminders.length === 0){
+      emptyState.style.display = 'block';
+      return;
+    }
+    emptyState.style.display = 'none';
+    const sorted = [...reminders].sort((a,b) => a.time.localeCompare(b.time));
+    sorted.forEach(r => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <div class="info">
+          <span class="name">${escapeHtml(r.name)}</span>
+          <span class="time">${formatTime(r.time)} · daily</span>
+        </div>
+        <button class="del" data-id="${r.id}" aria-label="Delete">✕</button>
+      `;
+      list.appendChild(li);
+    });
+    list.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        reminders = reminders.filter(r => r.id !== btn.dataset.id);
+        saveReminders(reminders);
+        render();
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function openModal(){
+    nameInput.value = '';
+    timeInput.value = '';
+    backdrop.classList.add('open');
+    setTimeout(() => nameInput.focus(), 50);
+  }
+  function closeModal(){
+    backdrop.classList.remove('open');
+  }
+
+  openSheet.addEventListener('click', openModal);
+  cancelBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', (e) => {
+    if(e.target === backdrop) closeModal();
+  });
+
+  saveBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    const time = timeInput.value;
+    if(!name || !time) return;
+    reminders.push({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+      name,
+      time,
+      lastFired: null
+    });
+    saveReminders(reminders);
+    render();
+    closeModal();
+  });
+
+  // Notification permission handling
+  function updatePermissionBanner(){
+    if(!('Notification' in window)){
+      permissionBanner.style.display = 'flex';
+      permissionBanner.querySelector('span').textContent = 'This browser does not support notifications.';
+      askPermission.style.display = 'none';
+      return;
+    }
+    if(Notification.permission === 'denied'){
+      permissionBanner.style.display = 'flex';
+    }else if(Notification.permission === 'default'){
+      permissionBanner.style.display = 'flex';
+      Notification.requestPermission().then(updatePermissionBanner);
+    }else{
+      permissionBanner.style.display = 'none';
+    }
+  }
+  askPermission.addEventListener('click', () => {
+    Notification.requestPermission().then(updatePermissionBanner);
+  });
+
+  function checkReminders(){
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    const today = now.toDateString();
+    let changed = false;
+    reminders.forEach(r => {
+      if(r.time === hhmm && r.lastFired !== today){
+        new Notification(r.name, {
+          body: `It's ${formatTime(r.time)}`,
+          tag: r.id
+        });
+        r.lastFired = today;
+        changed = true;
+      }
+    });
+    if(changed) saveReminders(reminders);
+  }
+
+  updatePermissionBanner();
+  render();
+  checkReminders();
+  setInterval(checkReminders, 15000);
+</script>
+
+</body>
+</html>
