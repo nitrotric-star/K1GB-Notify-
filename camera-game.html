@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Snap Focus</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    font-family: -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #video {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  /* ---------- Start screen ---------- */
+  #startScreen {
+    position: fixed; inset: 0;
+    z-index: 30;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #1e2a4a, #12172b);
+    padding: 30px;
+    text-align: center;
+  }
+  #startScreen h1 { font-size: 26px; margin-bottom: 10px; color: #ffd166; }
+  #startScreen p { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 26px; max-width: 320px; }
+  #startBtn {
+    background: #ffd166; color: #1e2a4a; border: none;
+    padding: 14px 32px; border-radius: 26px; font-size: 16px; font-weight: 700;
+  }
+  #permError {
+    margin-top: 18px; font-size: 13px; color: #ff8888; max-width: 300px; display: none;
+  }
+
+  /* ---------- Dark mask with clear cutout box ---------- */
+  #viewfinder {
+    position: fixed;
+    z-index: 5;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.72);
+    border: 3px solid rgba(255,209,102,0.9);
+    border-radius: 6px;
+    transition: top 0.25s ease, left 0.25s ease;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #countdownText {
+    font-size: 15vw;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+  }
+
+  /* ---------- Flash effect ---------- */
+  #flashOverlay {
+    position: fixed; inset: 0;
+    background: #fff;
+    opacity: 0;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  /* ---------- HUD ---------- */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 10;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 16px 18px;
+  }
+  #hud div { font-size: 14px; color: rgba(255,255,255,0.9); background: rgba(0,0,0,0.4); padding: 6px 14px; border-radius: 14px; }
+  #hud span { color: #ffd166; font-weight: 700; }
+
+  #exitBtn {
+    position: fixed; top: 16px; right: 16px;
+    z-index: 15;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; padding: 6px 14px; border-radius: 14px; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>📸 Snap Focus</h1>
+  <p>A clear box will appear somewhere on screen. Watch the countdown, and when it hits SNAP, the box jumps to a new spot. Keep up!</p>
+  <button id="startBtn">Open Camera</button>
+  <div id="permError">Couldn't access the camera. Check that camera permission is allowed for this page, then try again.</div>
+</div>
+
+<video id="video" autoplay playsinline muted style="display:none;"></video>
+
+<div id="hud" style="display:none;">
+  <div>Round: <span id="roundCount">0</span></div>
+  <button id="exitBtn">Exit</button>
+</div>
+
+<div id="viewfinder" style="display:none;">
+  <div id="countdownText">3</div>
+</div>
+
+<div id="flashOverlay"></div>
+
+<script>
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const permError = document.getElementById('permError');
+const video = document.getElementById('video');
+const viewfinder = document.getElementById('viewfinder');
+const countdownText = document.getElementById('countdownText');
+const flashOverlay = document.getElementById('flashOverlay');
+const hud = document.getElementById('hud');
+const roundCountEl = document.getElementById('roundCount');
+const exitBtn = document.getElementById('exitBtn');
+
+let round = 0;
+let running = false;
+let countdownTimer = null;
+
+async function startCamera() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    startScreen.style.display = 'none';
+    hud.style.display = 'flex';
+    viewfinder.style.display = 'flex';
+    running = true;
+    round = 0;
+    roundCountEl.textContent = round;
+    positionViewfinder();
+    startCountdown();
+  } catch (err) {
+    permError.style.display = 'block';
+  }
+}
+
+startBtn.addEventListener('click', startCamera);
+
+exitBtn.addEventListener('click', () => {
+  stopGame();
+});
+
+function stopGame() {
+  running = false;
+  clearTimeout(countdownTimer);
+  const stream = video.srcObject;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+  }
+  video.style.display = 'none';
+  hud.style.display = 'none';
+  viewfinder.style.display = 'none';
+  startScreen.style.display = 'flex';
+  permError.style.display = 'none';
+}
+
+function positionViewfinder() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Horizontal box: wide and short
+  const boxW = vw * (0.55 + Math.random() * 0.15);
+  const boxH = vh * (0.16 + Math.random() * 0.08);
+
+  const margin = 20;
+  const maxX = vw - boxW - margin;
+  const maxY = vh - boxH - margin - 60; // keep clear of HUD area
+  const minY = 70;
+
+  const x = margin + Math.random() * Math.max(0, maxX - margin);
+  const y = minY + Math.random() * Math.max(0, maxY - minY);
+
+  viewfinder.style.width = boxW + 'px';
+  viewfinder.style.height = boxH + 'px';
+  viewfinder.style.left = x + 'px';
+  viewfinder.style.top = y + 'px';
+}
+
+function startCountdown() {
+  if (!running) return;
+  let count = 3;
+  countdownText.textContent = count;
+  countdownText.style.opacity = '1';
+
+  function tick() {
+    if (!running) return;
+    count--;
+    if (count > 0) {
+      countdownText.textContent = count;
+      countdownTimer = setTimeout(tick, 700);
+    } else {
+      countdownText.textContent = 'SNAP!';
+      countdownTimer = setTimeout(doSnap, 500);
+    }
+  }
+  countdownTimer = setTimeout(tick, 700);
+}
+
+function doSnap() {
+  if (!running) return;
+
+  // Flash effect
+  flashOverlay.style.transition = 'none';
+  flashOverlay.style.opacity = '0.9';
+  requestAnimationFrame(() => {
+    flashOverlay.style.transition = 'opacity 0.35s ease';
+    flashOverlay.style.opacity = '0';
+  });
+
+  round++;
+  roundCountEl.textContent = round;
+
+  setTimeout(() => {
+    if (!running) return;
+    positionViewfinder();
+    startCountdown();
+  }, 250);
+}
+
+window.addEventListener('resize', () => {
+  if (running) positionViewfinder();
+});
+</script>
+</body>
+</html>
