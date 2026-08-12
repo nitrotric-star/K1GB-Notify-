@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Live</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    font-family: -apple-system, sans-serif;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  #video {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  /* ---------- Start screen ---------- */
+  #startScreen {
+    position: fixed; inset: 0;
+    z-index: 40;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #1e0f2a, #10071a);
+    padding: 30px;
+    text-align: center;
+  }
+  #startScreen h1 { font-size: 26px; margin-bottom: 10px; }
+  #startScreen h1 span { color: #ff3b5c; }
+  #startScreen p { font-size: 14px; color: rgba(255,255,255,0.7); margin-bottom: 26px; max-width: 320px; }
+  #startBtn {
+    background: #ff3b5c; color: #fff; border: none;
+    padding: 14px 34px; border-radius: 26px; font-size: 16px; font-weight: 700;
+  }
+  #permError { margin-top: 18px; font-size: 13px; color: #ff8888; max-width: 300px; display: none; }
+
+  /* ---------- Live HUD ---------- */
+  #liveUI { position: fixed; inset: 0; z-index: 10; display: none; pointer-events: none; }
+
+  #topBar {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 14px;
+    pointer-events: auto;
+  }
+  #hostInfo { display: flex; align-items: center; gap: 8px; }
+  #avatar {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff3b5c, #ff8a3d);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+    border: 2px solid #fff;
+  }
+  #hostNameBlock { display: flex; flex-direction: column; }
+  #hostName { font-size: 13px; font-weight: 700; }
+  #liveBadgeRow { display: flex; align-items: center; gap: 6px; }
+  #liveBadge {
+    background: #ff3b5c; font-size: 10px; font-weight: 800;
+    padding: 2px 7px; border-radius: 4px; letter-spacing: 0.5px;
+  }
+  #viewerCount { font-size: 11px; color: rgba(255,255,255,0.85); }
+
+  #endBtn {
+    background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; width: 34px; height: 34px; border-radius: 50%;
+    font-size: 16px; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Floating hearts ---------- */
+  #heartLayer { position: absolute; inset: 0; pointer-events: none; }
+  .float-heart {
+    position: absolute;
+    bottom: 140px;
+    right: 24px;
+    font-size: 26px;
+    opacity: 0.95;
+    animation: floatUp 2.6s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+    10% { opacity: 1; transform: translate(0, -10px) scale(1); }
+    100% { transform: translate(var(--dx), -420px) scale(1.1); opacity: 0; }
+  }
+
+  /* ---------- Comments feed ---------- */
+  #commentFeed {
+    position: absolute;
+    left: 12px; right: 90px;
+    bottom: 84px;
+    max-height: 42vh;
+    overflow: hidden;
+    display: flex; flex-direction: column-reverse;
+    gap: 7px;
+  }
+  .comment-row {
+    display: flex; align-items: flex-start; gap: 6px;
+    background: rgba(0,0,0,0.32);
+    padding: 6px 10px;
+    border-radius: 14px;
+    max-width: 100%;
+    animation: commentIn 0.25s ease;
+  }
+  @keyframes commentIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .comment-user { font-size: 12px; font-weight: 700; color: #ffd166; white-space: nowrap; }
+  .comment-text { font-size: 12.5px; color: #fff; }
+
+  /* ---------- Bottom bar ---------- */
+  #bottomBar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px 20px;
+    pointer-events: auto;
+  }
+  #fakeInput {
+    flex: 1;
+    background: rgba(255,255,255,0.15);
+    border-radius: 20px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+  }
+  #heartBtn {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    border: none;
+  }
+
+  /* ---------- Joined toast ---------- */
+  #joinToast {
+    position: absolute;
+    left: 12px; bottom: 145px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="startScreen">
+  <h1>Go <span>Live</span></h1>
+  <p>Opens your camera and makes it look like you're live streaming — fake viewer count, fake comments, floating hearts. Just for laughs, nothing is actually broadcast.</p>
+  <button id="startBtn">Start Live</button>
+  <div id="permError">Couldn't access the camera. Check that camera permission is allowed for this page, then try again.</div>
+</div>
+
+<video id="video" autoplay playsinline muted style="display:none;"></video>
+
+<div id="liveUI">
+  <div id="topBar">
+    <div id="hostInfo">
+      <div id="avatar">K1</div>
+      <div id="hostNameBlock">
+        <div id="hostName">K1GB</div>
+        <div id="liveBadgeRow">
+          <div id="liveBadge">LIVE</div>
+          <div id="viewerCount">👁 0</div>
+        </div>
+      </div>
+    </div>
+    <button id="endBtn">✕</button>
+  </div>
+
+  <div id="joinToast"></div>
+  <div id="commentFeed"></div>
+  <div id="heartLayer"></div>
+
+  <div id="bottomBar">
+    <div id="fakeInput">Add a comment...</div>
+    <button id="heartBtn">❤️</button>
+  </div>
+</div>
+
+<script>
+const startScreen = document.getElementById('startScreen');
+const startBtn = document.getElementById('startBtn');
+const permError = document.getElementById('permError');
+const video = document.getElementById('video');
+const liveUI = document.getElementById('liveUI');
+const endBtn = document.getElementById('endBtn');
+const viewerCountEl = document.getElementById('viewerCount');
+const commentFeed = document.getElementById('commentFeed');
+const heartLayer = document.getElementById('heartLayer');
+const heartBtn = document.getElementById('heartBtn');
+const joinToast = document.getElementById('joinToast');
+
+let running = false;
+let viewers = 3;
+let timers = [];
+
+const USERNAMES = ['jess.k', 'sam_o', 'mo.rides', 'lil_tay22', 'zayn.b', 'nina_x', 'kev.codes', 'ari.moon', 'devon__', 'yara.p', 'tommy.v', 'sky_lark', 'nate.exe', 'priya.s', 'leo_wave'];
+const COMMENTS = [
+  'yooo wassup', 'lmaooo', 'where are you rn', 'this is fire 🔥',
+  'first time catching u live', 'say hi to me', 'wait what', 'no way 😭',
+  'lol lol lol', 'lets gooo', 'lowkey wild', 'lmaooo lets go', 'lol who is this',
+  'lets get this to 1k viewers', 'certified moment', 'ayyyy', 'omgggg',
+  '📈📈📈', 'why is this so funny', 'this you? 😂', 'streaming late again 💀'
+];
+const JOIN_MSGS = ['joined the live', 'started watching'];
+
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+
+async function startLive() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'user' } },
+      audio: false
+    });
+    video.srcObject = stream;
+    video.style.display = 'block';
+    startScreen.style.display = 'none';
+    liveUI.style.display = 'block';
+    running = true;
+    viewers = randInt(3, 9);
+    updateViewerCount();
+    scheduleViewerDrift();
+    scheduleComments();
+    scheduleAutoHearts();
+    scheduleJoinToasts();
+  } catch (err) {
+    permError.style.display = 'block';
+  }
+}
+
+startBtn.addEventListener('click', startLive);
+
+endBtn.addEventListener('click', () => {
+  stopLive();
+});
+
+function stopLive() {
+  running = false;
+  timers.forEach(t => clearTimeout(t));
+  timers = [];
+  const stream = video.srcObject;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  video.style.display = 'none';
+  liveUI.style.display = 'none';
+  commentFeed.innerHTML = '';
+  heartLayer.innerHTML = '';
+  startScreen.style.display = 'flex';
+  permError.style.display = 'none';
+}
+
+function updateViewerCount() {
+  viewerCountEl.textContent = '👁 ' + viewers;
+}
+
+function scheduleViewerDrift() {
+  if (!running) return;
+  const delay = randInt(1800, 4200);
+  const t = setTimeout(() => {
+    if (!running) return;
+    const delta = randInt(-1, 3);
+    viewers = Math.max(1, viewers + delta);
+    updateViewerCount();
+    scheduleViewerDrift();
+  }, delay);
+  timers.push(t);
+}
+
+function addComment() {
+  const row = document.createElement('div');
+  row.className = 'comment-row';
+  const user = document.createElement('div');
+  user.className = 'comment-user';
+  user.textContent = rand(USERNAMES) + ':';
+  const text = document.createElement('div');
+  text.className = 'comment-text';
+  text.textContent = rand(COMMENTS);
+  row.appendChild(user);
+  row.appendChild(text);
+  commentFeed.insertBefore(row, commentFeed.firstChild);
+
+  while (commentFeed.children.length > 6) {
+    commentFeed.removeChild(commentFeed.lastChild);
+  }
+}
+
+function scheduleComments() {
+  if (!running) return;
+  const delay = randInt(1400, 3600);
+  const t = setTimeout(() => {
+    if (!running) return;
+    addComment();
+    scheduleComments();
+  }, delay);
+  timers.push(t);
+}
+
+function spawnHeart() {
+  const heart = document.createElement('div');
+  heart.className = 'float-heart';
+  heart.textContent = rand(['❤️', '💖', '💕', '🔥', '😂', '👏']);
+  const dx = randInt(-40, 40);
+  heart.style.setProperty('--dx', dx + 'px');
+  heartLayer.appendChild(heart);
+  setTimeout(() => heart.remove(), 2700);
+}
+
+function scheduleAutoHearts() {
+  if (!running) return;
+  const delay = randInt(900, 2200);
+  const t = setTimeout(() => {
+    if (!running) return;
+    spawnHeart();
+    scheduleAutoHearts();
+  }, delay);
+  timers.push(t);
+}
+
+function showJoinToast() {
+  joinToast.textContent = rand(USERNAMES) + ' ' + rand(JOIN_MSGS);
+  joinToast.style.opacity = '1';
+  setTimeout(() => { joinToast.style.opacity = '0'; }, 1800);
+}
+
+function scheduleJoinToasts() {
+  if (!running) return;
+  const delay = randInt(3500, 7000);
+  const t = setTimeout(() => {
+    if (!running) return;
+    showJoinToast();
+    scheduleJoinToasts();
+  }, delay);
+  timers.push(t);
+}
+
+heartBtn.addEventListener('click', () => {
+  for (let i = 0; i < 3; i++) {
+    setTimeout(spawnHeart, i * 120);
+  }
+});
+</script>
+</body>
+</html>
