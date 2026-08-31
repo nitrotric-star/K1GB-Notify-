@@ -37,13 +37,16 @@
   }
   #controls {
     position: fixed;
-    bottom: 24px;
-    left: 0; right: 0;
+    top: 14px;
+    left: 14px;
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 10px;
     z-index: 10;
+    transition: opacity 0.2s;
+  }
+  #controls.hidden {
+    display: none;
   }
   button {
     background: rgba(255,255,255,0.15);
@@ -72,6 +75,18 @@
     font-size: 11px;
     z-index: 10;
   }
+  #dotBtn {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 50%;
+    background: rgba(255,255,255,0.4);
+    z-index: 15;
+  }
   #canvas { display: none; }
   #flash {
     position: fixed; inset: 0;
@@ -97,6 +112,8 @@
   <button id="torchBtn">⚡</button>
 </div>
 
+<button id="dotBtn" title="Hide/show controls"></button>
+
 <script>
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
@@ -106,22 +123,33 @@ const shotBtn = document.getElementById('shotBtn');
 const switchBtn = document.getElementById('switchBtn');
 const torchBtn = document.getElementById('torchBtn');
 const fsBtn = document.getElementById('fsBtn');
+const dotBtn = document.getElementById('dotBtn');
+const controls = document.getElementById('controls');
+
+dotBtn.addEventListener('click', () => {
+  const hiding = !controls.classList.contains('hidden');
+  controls.classList.toggle('hidden', hiding);
+  fsBtn.style.display = hiding ? 'none' : '';
+});
 
 let currentStream = null;
 let facingMode = 'environment'; // back camera by default
 let torchOn = false;
+let hasHardwareTorch = false;
+let screenFlashOn = false;
 
 async function startCamera() {
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
   }
+  video.srcObject = null;
   torchOn = false;
+  screenFlashOn = false;
   torchBtn.classList.remove('active');
+  flash.style.opacity = '0';
+  flash.style.zIndex = '20';
   overlay.style.display = 'none';
-
-  // small delay lets the previous camera fully release before switching
-  await new Promise(r => setTimeout(r, 250));
 
   const attempts = [
     { video: { facingMode: { exact: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
@@ -131,12 +159,17 @@ async function startCamera() {
 
   let stream = null;
   let lastErr = null;
-  for (const constraints of attempts) {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      break;
-    } catch (err) {
-      lastErr = err;
+
+  // hardware release can take longer on some devices, so retry with backoff
+  for (let retry = 0; retry < 4 && !stream; retry++) {
+    if (retry > 0) await new Promise(r => setTimeout(r, 400 * retry));
+    for (const constraints of attempts) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        break;
+      } catch (err) {
+        lastErr = err;
+      }
     }
   }
 
@@ -152,7 +185,8 @@ async function startCamera() {
 
   const track = stream.getVideoTracks()[0];
   const caps = track.getCapabilities ? track.getCapabilities() : {};
-  torchBtn.disabled = !(facingMode === 'environment' && caps.torch);
+  hasHardwareTorch = facingMode === 'environment' && !!caps.torch;
+  torchBtn.disabled = false; // front camera uses screen-flash fallback instead
 }
 
 switchBtn.addEventListener('click', () => {
@@ -162,10 +196,19 @@ switchBtn.addEventListener('click', () => {
 
 torchBtn.addEventListener('click', () => {
   if (!currentStream) return;
-  const track = currentStream.getVideoTracks()[0];
-  torchOn = !torchOn;
-  track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {});
-  torchBtn.classList.toggle('active', torchOn);
+  if (hasHardwareTorch) {
+    const track = currentStream.getVideoTracks()[0];
+    torchOn = !torchOn;
+    track.applyConstraints({ advanced: [{ torch: torchOn }] }).catch(() => {});
+    torchBtn.classList.toggle('active', torchOn);
+  } else {
+    // no physical flash on front camera - toggle a bright screen overlay instead
+    screenFlashOn = !screenFlashOn;
+    torchBtn.classList.toggle('active', screenFlashOn);
+    flash.style.transition = 'none';
+    flash.style.opacity = screenFlashOn ? '0.85' : '0';
+    flash.style.zIndex = screenFlashOn ? '5' : '20';
+  }
 });
 
 fsBtn.addEventListener('click', () => {
@@ -182,14 +225,23 @@ shotBtn.addEventListener('click', () => {
   canvas.width = video.videoWidth;
   canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  flash.style.transition = 'none';
-  flash.style.opacity = '0.8';
-  requestAnimationFrame(() => {
-    flash.style.transition = 'opacity 0.3s';
-    flash.style.opacity = '0';
-  });
+  if (facingMode === 'user') {
+    // flip the capture so the saved photo matches the mirrored preview
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  if (!screenFlashOn) {
+    flash.style.transition = 'none';
+    flash.style.opacity = '0.8';
+    requestAnimationFrame(() => {
+      flash.style.transition = 'opacity 0.3s';
+      flash.style.opacity = '0';
+    });
+  }
 
   canvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
