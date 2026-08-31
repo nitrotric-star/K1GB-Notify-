@@ -114,31 +114,45 @@ let torchOn = false;
 async function startCamera() {
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
+    currentStream = null;
   }
   torchOn = false;
   torchBtn.classList.remove('active');
-  try {
-    overlay.style.display = 'none';
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: facingMode },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      },
-      audio: false
-    });
-    currentStream = stream;
-    video.srcObject = stream;
-    video.classList.toggle('mirror', facingMode === 'user');
+  overlay.style.display = 'none';
 
-    // torch (flash) only works on the back camera, if the device supports it
-    const track = stream.getVideoTracks()[0];
-    const caps = track.getCapabilities ? track.getCapabilities() : {};
-    torchBtn.disabled = !(facingMode === 'environment' && caps.torch);
-  } catch (err) {
-    overlay.style.display = 'flex';
-    overlay.textContent = 'Camera access failed: ' + err.message;
+  // small delay lets the previous camera fully release before switching
+  await new Promise(r => setTimeout(r, 250));
+
+  const attempts = [
+    { video: { facingMode: { exact: facingMode }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false },
+    { video: { facingMode: { ideal: facingMode } }, audio: false },
+    { video: true, audio: false }
+  ];
+
+  let stream = null;
+  let lastErr = null;
+  for (const constraints of attempts) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      break;
+    } catch (err) {
+      lastErr = err;
+    }
   }
+
+  if (!stream) {
+    overlay.style.display = 'flex';
+    overlay.textContent = 'Camera access failed: ' + (lastErr ? lastErr.message : 'unknown error');
+    return;
+  }
+
+  currentStream = stream;
+  video.srcObject = stream;
+  video.classList.toggle('mirror', facingMode === 'user');
+
+  const track = stream.getVideoTracks()[0];
+  const caps = track.getCapabilities ? track.getCapabilities() : {};
+  torchBtn.disabled = !(facingMode === 'environment' && caps.torch);
 }
 
 switchBtn.addEventListener('click', () => {
